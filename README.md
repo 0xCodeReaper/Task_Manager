@@ -35,12 +35,12 @@ After running the program, the user is prompted to log in as an admin or not. Ad
 
 Once logged in, the user can select from the following menu options:
 
-va - View all tasks: Displays all tasks stored in the tasks.txt file.
-vm - View my tasks: Displays tasks assigned to the currently logged-in user.
-a - Add task: Allows the user to add a new task to the tasks.txt file.
-e - Exit: Exits the program.
-r - Register user: Allows the admin to add a new user to the user.txt file.
-gr - Generate reports: Allows the admin to generate various reports on users and tasks.
+_va - View all tasks:_ Displays all tasks stored in the tasks.txt file.
+_vm - View my tasks:_ Displays tasks assigned to the currently logged-in user.
+_a - Add task:_ Allows the user to add a new task to the tasks.txt file.
+_e - Exit:_ Exits the program.
+_r - Register user:_ Allows the admin to add a new user to the user.txt file.
+_gr - Generate reports_: Allows the admin to generate various reports on users and tasks.
 
 **Credits**
 
