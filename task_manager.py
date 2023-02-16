@@ -1,0 +1,350 @@
+# This program is a task management system that allows users to log in and view all tasks, view their assigned tasks, and register
+# new users. If the user is an admin, they also have the option to add new tasks and users and generate reports, creating files task_overview.txt and user_overview.txt
+# The program reads user and task information from 'user.txt' and 'tasks.txt' files, respectively. 
+# The program also includes a login system to ensure only authorized users have access to the task management system.
+
+# ==============================================================================================================================
+
+# The code below defines all necessary functions and checks if the entered username and password match a valid combination in the user.txt file. 
+# If a match is found, it logs the user in. If not, it prompts the user to enter their credentials again until a match is found 
+# or the user quits.
+
+
+from datetime import datetime
+
+def login():
+    while True:
+        entered_username = input("Enter your username: ")
+        entered_password = input("Enter your password: ")
+
+        with open('user.txt', 'r') as f:
+            contents = f.read()
+        lines = contents.split('\n')
+        login_successful = False
+        is_admin = False
+
+        for line in lines:
+            if ',' in line:
+                username, password = line.split(',', maxsplit=1)
+                username = username.strip()
+                password = password.strip()
+                if entered_username == username and entered_password == password:
+                    login_successful = True
+                    is_admin = (username == 'admin')
+                    break
+        if login_successful:
+            print("\nLogin successful!")
+            logged_in_user = entered_username
+            return login_successful, is_admin, username
+        else:
+            print("\nLogin unsuccessful. Please try again.")
+
+login_successful, is_admin, logged_in_user = login()
+
+# This function allows the admin to register new users. It writes the login details to users.txt 
+def register_user(username):
+    if username == 'admin':
+        new_user = input("Enter a new username: ")
+        while True:
+            # check if the new_user already exists in the user.txt file
+            with open('user.txt', 'r') as file:
+                users = file.read().splitlines()
+                for user in users:
+                    if new_user in user:
+                        print("Username already taken. Please choose a different one.")
+                        new_user = input("Enter a new username: ")
+                        # refresh the contents of the file
+                        with open('user.txt', 'r') as file:
+                            users = file.read().splitlines()
+                        break
+                else:
+                    break
+        password = input("Enter a new password: ")
+        while True:
+            password_confirmation = input("Confirm password: ")
+            if password == password_confirmation:
+                break
+            else:
+                print("Passwords do not match. Please try again.")
+        with open('user.txt', 'a') as file:
+            file.write(f'{new_user}, {password}\n')
+            print("\nNew user added successfully!")
+            
+    else:
+        print("You do not have permission to register new users.")
+
+# This function allows the admin to assign tasks to users. It checks if username is found in user.txt and if so, adds tasks details to tasks.txt
+def add_task(username):
+    if username == 'admin':
+        assigned_to = input("\nEnter username of person task is assigned to: ")
+        with open('user.txt', 'r') as f:
+            contents = f.read()
+            users = contents.split("\n")
+            found = False
+            for user in users:
+                if ',' in user:
+                    username, password = user.split(',', maxsplit=1)
+                    username = username.strip()
+                    password = password.strip()
+                    if assigned_to == username:
+                        found = True
+                        break
+            if found:
+                title = input("Enter task name: ")
+                description = input("Enter task description: ")
+                due_date_str = input("Enter task due date (dd/mm/yyyy): ")
+                due_date = datetime.strptime(due_date_str, '%d/%m/%Y')
+                due_date_str = due_date.strftime('%d %b %Y')
+                current_date = datetime.now().strftime('%d %b %Y')                                 #
+                with open('tasks.txt', 'a') as file:
+                    file.write(f"\n{assigned_to}, {title}, {description}, {current_date}, {due_date_str}, No")
+                    print("\nTask added successfully!")
+                    # refresh the contents of the file
+                    with open('tasks.txt', 'r') as file:
+                        contents = file.read()
+            else:
+                print(f"\nUser '{assigned_to}' does not exist.")
+    else:
+        print("You do not have permission to add tasks.")
+
+# This function prints the contents of tasks.txt in an organised way, allowing the user to see all existing tasks
+def view_all_tasks():
+    with open('tasks.txt', 'r') as tasks_read:
+        data = tasks_read.readlines()
+        for pos, line in enumerate(data, 1):
+            split_data = line.split(', ')
+            try:
+                output = f'──────[{pos}]──────\n'
+                output += '\n'
+                output += f'Assigned to: \t\t{split_data[0]}\n'
+                output += f'Task: \t\t\t{split_data[1]}\n'
+                output += f'Description: \t\t{split_data[2]}\n'
+                output += f'Assigned Date: \t\t{split_data[3]}\n'
+                output += f'Due Date: \t\t{split_data[4]}\n'
+                output += f'Is completed: \t\t{split_data[5].strip()}\n'
+                output += '\n'
+                output += '────────────\n'
+            except IndexError:
+                continue
+
+            print(output)
+
+
+# This function allows the user to view their tasks and edit them.
+def view_my_tasks(logged_in_user):
+    def edit_task(task, field, new_value):
+        data = task.split(', ')
+        data[field] = new_value
+        return ', '.join(data)
+
+    with open('tasks.txt', 'r') as tasks_read:
+        data = tasks_read.readlines()
+        my_tasks = []
+        all_tasks = []
+        for id, line in enumerate(data):
+            if line.startswith(logged_in_user + ', '):
+                my_tasks.append(f'{line}, {id}')
+            all_tasks.append(line)
+
+        if my_tasks:
+            for pos, line in enumerate(my_tasks, 1):
+                split_data = line.split(', ')
+                output = f'──────[{pos}]──────\n'
+                output += '\n'
+                output += f'Assigned to: \t\t{split_data[0]}\n'
+                output += f'Task: \t\t\t{split_data[1]}\n'
+                output += f'Description: \t\t{split_data[2]}\n'
+                output += f'Assigned Date: \t\t{split_data[3]}\n'
+                output += f'Due Date: \t\t{split_data[4]}\n'
+                output += f'Is completed: \t\t{split_data[5]}\n'
+                output += '\n'
+                output += '────────────\n'
+                print(output)
+
+            with open('user.txt', 'r') as f:
+                contents = f.read()
+                users = [line.split(',')[0].strip() for line in contents.split('\n') if line]
+
+            task_number = input("Enter the number of the task you want to mark as complete or edit (or -1 to go back): ")
+            if task_number != "-1":
+                task_number = int(task_number)
+                task = my_tasks[task_number - 1]
+                split_data = task.split(', ')
+
+                if split_data[5].strip() == "Yes":
+                    print("Task is already marked as complete and cannot be edited.")
+                    return
+
+                complete = input("Mark as complete? (yes/no): ")
+                if complete == 'yes':
+                    my_tasks[task_number - 1] = edit_task(task, 5, 'Yes\n')
+                    with open('tasks.txt', 'w') as tasks_write:
+                        tasks_write.writelines(my_tasks)
+                    print("Task marked as complete.")
+                    view_my_tasks(logged_in_user)
+                else:
+                    edit_field = input("Enter 1 to edit 'Assigned to' or 2 to edit 'Due date': ")
+                    if edit_field == '1':
+                        new_value = input(f"Enter the new value for 'Assigned to': ")
+                        if new_value in users:
+                            assigned_to, task, description, assigned_date, due_date, is_completed, id_task = task.split(', ')
+                            updated_task = f"{new_value}, {task}, {description}, {assigned_date}, {due_date}, {is_completed}"
+                            all_tasks[int(id_task)] = updated_task
+                            with open('tasks.txt', 'w') as tasks_write:
+                                tasks_write.writelines(all_tasks)
+                            print("Assigned to value updated.")
+                            view_my_tasks(logged_in_user)
+                        else:
+                            print("Invalid user")
+                    elif edit_field == '2':
+                        assigned_to, task, description, assigned_date, due_date_str, is_completed, id_task = task.split(', ')
+                        due_date_str = input(f"Enter the new value for 'Due date': ")
+                        due_date = datetime.strptime(due_date_str, '%d/%m/%Y')
+                        due_date_str = due_date.strftime('%d %b %Y')
+                        updated_task = f"{assigned_to}, {task}, {description}, {assigned_date}, {due_date_str}, {is_completed}"
+                        all_tasks[int(id_task)] = updated_task
+                        with open('tasks.txt', 'w') as tasks_write:
+                            tasks_write.writelines(all_tasks)
+                        print("Due date updated.")
+                        view_my_tasks(logged_in_user)
+                    else:
+                        print("Invalid field")
+            else:
+                return
+
+# This function creates overview files containing various statistics such as numbers of users and tasks, completed tasks, percentages of tasks that are completed, etc.
+def generate_reports():
+    total_tasks = 0
+    completed_tasks = 0
+    uncompleted_tasks = 0
+    total_overdue_tasks = 0
+    tasks_uncomplete_percentage = 0.0
+    tasks_complete_percentage = 0.0
+    tasks_overdue_percentage = 0.0
+    total_users = 0
+    with open('user.txt', 'r') as f:            
+        contents = f.read()
+        users = contents.split("\n")
+        users.pop()
+    total_users = len(users)
+    with open('tasks.txt', 'r') as f:           
+        contents = f.read()
+        tasks = contents.split("\n")
+    total_tasks = len(tasks)
+    for task in tasks:                          
+        is_completed = task.rsplit(',', 1)[-1]  
+        if "Yes" in is_completed:
+            completed_tasks += 1
+        else:
+            uncompleted_tasks += 1
+        overdue_date_task_str = task.split(', ')[4]
+        overdue_date_task = datetime.strptime(overdue_date_task_str, '%d %b %Y')
+        if overdue_date_task < datetime.now():
+            total_overdue_tasks += 1
+
+    tasks_complete_percentage = round((( completed_tasks / total_tasks ) * 100), 2)         
+    tasks_uncomplete_percentage = round((( uncompleted_tasks / total_tasks ) * 100), 2)    
+    tasks_overdue_percentage = round((( total_overdue_tasks / total_tasks ) * 100), 2)     
+    task_overview = []
+    task_overview.append(f"Total number of tasks: {total_tasks}")
+    task_overview.append(f"Total number of completed tasks: {completed_tasks}")
+    task_overview.append(f"Total number of uncompleted tasks: {uncompleted_tasks}")
+    task_overview.append(f"Total number of overdue tasks: {total_overdue_tasks}")
+    task_overview.append(f"Percentage of tasks that are incomplete: {tasks_uncomplete_percentage}%")
+    task_overview.append(f"Percentage of tasks that are overdue: {tasks_overdue_percentage}%")
+
+    with open("task_overview.txt", "w+") as file:
+        file.write("\n".join(task_overview))
+
+    user_overview = []
+    user_overview.append(f"Total number of users: {total_users}")
+    user_overview.append(f"Total number of tasks: {total_tasks}")
+    with open('user.txt', 'r') as users_read:
+        data = users_read.readlines()
+        
+    for id, user in enumerate(users):
+        user_array_data = user.split(',')
+        tested_username = user_array_data[0]
+        all_tasks = len(tasks)
+        user_tasks = 0
+        completed_tasks = 0
+        uncompleted_tasks = 0
+        total_overdue_tasks = 0
+        tasks_owned_by_user_percentage = 0.0
+        tasks_uncomplete_percentage = 0.0
+        tasks_complete_percentage = 0.0
+        tasks_overdue_percentage = 0.0
+        tasks_owned_by_user = 0
+        for task in tasks:
+            task_str_array = task.split(', ')
+            username_task_owner = task_str_array[0]
+            is_completed = task.rsplit(', ', 1)[-1]
+            if tested_username == username_task_owner:
+                user_tasks += 1
+                if "Yes" in is_completed:
+                    completed_tasks += 1
+                else:
+                    uncompleted_tasks += 1
+                overdue_date_task_str = task_str_array[4]
+                overdue_date_task = datetime.strptime(overdue_date_task_str, '%d %b %Y')
+                if (overdue_date_task < datetime.now()) & ("No" in is_completed):
+                    total_overdue_tasks += 1
+        user_overview.append(f"User: {tested_username}")
+        if(user_tasks > 0):
+            tasks_owned_by_user_percentage = round((( user_tasks / all_tasks) * 100), 2)
+            tasks_complete_percentage = round((( completed_tasks / user_tasks ) * 100), 2)
+            tasks_uncomplete_percentage = round((( uncompleted_tasks / user_tasks ) * 100), 2)
+            tasks_overdue_percentage = round((( total_overdue_tasks / user_tasks ) * 100), 2)
+            tasks_owned_by_user = round((( user_tasks / all_tasks ) * 100), 2)
+        user_overview.append(f"Tasks assigned by user : {user_tasks}")
+        user_overview.append(f"Percentage of tasks assigned by user : {tasks_owned_by_user_percentage}%")
+        user_overview.append(f"Percentage of completed tasks assigned to : {tasks_complete_percentage}%")
+        user_overview.append(f"Percentage of uncompleted tasks assigned to user: {tasks_uncomplete_percentage}%")
+        user_overview.append(f"Percentage of uncompleted and overdue tasks assigned to user: {tasks_overdue_percentage}%")
+        user_overview.append(f"Percentage of tasks owned by this user: {tasks_owned_by_user}%")
+        
+    with open("user_overview.txt", "w+") as file:
+        file.write("\n".join(user_overview))
+
+# This part of the code shows the user two different menus and options depending on whether the logged in user is the admin or not.
+while True:
+    print("\n╔══════════════════════════════════════╗")
+    # Non-admin user options
+    if not is_admin:
+        print("║ Select one of the following options: ║")
+        print("╠══════════════════════════════════════╣")
+        print("║ va - View all tasks                  ║")
+        print("║ vm - View my tasks                   ║")
+        print("║ e - Exit                             ║")
+        print("╚══════════════════════════════════════╝")
+        menu = input(": ").lower()
+    # Admin user options
+    else:
+        print("║ Select one of the following options: ║")
+        print("╠══════════════════════════════════════╣")
+        print("║ r - Registering a user               ║")
+        print("║ a - Adding a task                    ║")
+        print("║ va - View all tasks                  ║")
+        print("║ vm - View my tasks                   ║")
+        print("║ gr - Generate reports                ║")
+        print("║ e - Exit                             ║")
+        print("╚══════════════════════════════════════╝")
+        menu = input(": ").lower()
+
+
+# The code that follows allows the selection of a particular menu item and calls the relevant function
+    if menu == 'r' and is_admin:
+        register_user(logged_in_user)
+    elif menu == 'a' and is_admin:
+        add_task(logged_in_user)
+    elif menu == 'va':
+        view_all_tasks()
+    elif menu == 'vm':
+        view_my_tasks(logged_in_user)
+    elif menu == 'e':
+        print("\nGoodbye!")
+        break
+    elif menu == 'gr' and is_admin:
+        generate_reports()
+    else:
+    	print("\nInvalid input. Please try again.")
